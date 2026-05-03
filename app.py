@@ -74,7 +74,7 @@ def get_members():
 
 @app.route("/members", methods=["POST"])
 def add_member():
-    data = request.json
+    data = request.form if request.form else request.json
     try:
         new_member = Member(
             first_name=data['first_name'],

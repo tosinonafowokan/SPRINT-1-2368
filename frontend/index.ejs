@@ -1,0 +1,74 @@
+<h1>VIP Event Manager</h1>
+
+<a href="/members">Members</a><br>
+<a href="/events">Events</a><br>
+<a href="/registrations">Registrations</a>
+
+<h1>VIP Manager</h1>
+
+<hr>
+
+<h2>Add Member</h2>
+<form action="/members" method="POST">
+  <input name="first_name">
+  <input name="last_name">
+  <select name="membership_level">
+    <option>Bronze</option>
+    <option>Silver</option>
+    <option>Gold</option>
+  </select>
+  <button>Add</button>
+</form>
+
+<h3>Members</h3>
+<ul>
+<% members.forEach(m => { %>
+  <li><%= m.first_name %></li>
+<% }) %>
+</ul>
+
+<hr>
+
+<h2>Add Event</h2>
+<form action="/events" method="POST">
+  <input name="event_name">
+  <input name="capacity">
+  <input type="date" name="event_date">
+  <select name="level_requirement">
+    <option>Bronze</option>
+    <option>Silver</option>
+    <option>Gold</option>
+  </select>
+  <button>Create</button>
+</form>
+
+<h3>Events</h3>
+<ul>
+<% events.forEach(e => { %>
+  <li><%= e.name %></li>
+<% }) %>
+</ul>
+
+<hr>
+
+<h2>Register</h2>
+<form action="/registrations" method="POST">
+
+  <select name="member_id">
+    <% members.forEach(m => { %>
+      <option value="<%= m.id %>">
+        <%= m.first_name %>
+      </option>
+    <% }) %>
+  </select>
+
+  <select name="event_id">
+    <% events.forEach(e => { %>
+      <option value="<%= e.id %>">
+        <%= e.name %>
+      </option>
+    <% }) %>
+  </select>
+
+  <button>Register</button>
+</form>

@@ -1,6 +1,8 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from flask_cors import CORS
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -89,6 +91,35 @@ def add_member():
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/members/<int:id>", methods=["PUT"])
+def update_member(id):
+    data = request.json
+    member = Member.query.get(id)
+
+    if not member:
+        return jsonify({"success": False, "error": "Member not found"})
+
+    member.first_name = data.get("first_name", member.first_name)
+    member.last_name = data.get("last_name", member.last_name)
+    member.email = data.get("email", member.email)
+    member.membership_level = data.get("membership_level", member.membership_level)
+
+    db.session.commit()
+
+    return jsonify({"success": True, "message": "Member updated"})
+
+@app.route("/members/<int:id>", methods=["DELETE"])
+def delete_member(id):
+    member = Member.query.get(id)
+
+    if not member:
+        return jsonify({"success": False, "error": "Member not found"})
+
+    db.session.delete(member)
+    db.session.commit()
+
+    return jsonify({"success": True, "message": "Member deleted"})
+    
 @app.route("/events", methods=["GET"])
 def get_events():
     events = Event.query.all()
@@ -107,7 +138,7 @@ def get_events():
 def add_event():
     data = request.json
     try:
-        existing_event = Event.query.filter_by(event_date=data['event_date']).first()
+        existing_event = Event.query.filter_by(event_date=datetime.strptime(data['event_date'], "%Y-%m-%d").date()).first()
         if existing_event:
             return jsonify({"success": False, "error": "An event already exists on this date."})
         new_event = Event(
@@ -115,7 +146,7 @@ def add_event():
             event_description=data.get('event_description'),
             capacity=data['capacity'],
             level_requirement=data['level_requirement'],
-            event_date=data['event_date']
+            event_date=datetime.strptime(data['event_date'], "%Y-%m-%d")
         )
         db.session.add(new_event)
         db.session.commit()
@@ -148,6 +179,53 @@ def add_registration():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)})
+
+@app.route("/registrations", methods=["GET"])
+def get_registrations():
+    regs = Registration.query.all()
+    return jsonify([
+        {"id": r.registration_id, "member_id": r.member_id, "event_id": r.event_id} for r in regs
+    ])
+
+@app.route("/events/<int:id>/members", methods=["GET"])
+def get_event_members(id):
+    regs = Registration.query.filter_by(event_id=id).all()
+
+    result = []
+    for r in regs:
+        member = Member.query.get(r.member_id)
+        result.append({"name": f"{member.first_name} {member.last_name}", "membership_level": member.membership_level})
+    return jsonify(result)
+
+@app.route("/registrations/<int:id>", methods=["DELETE"])
+def delete_registration(id):
+    reg = Registration.query.get(id)
+
+    if not reg:
+        return jsonify({"success": False, "error": "Registration not found"})
+
+    db.session.delete(reg)
+    db.session.commit()
+
+    return jsonify({"success": True})
+
+@app.route("/events/level/<level>", methods=["GET"])
+def get_events_by_level(level):
+    events = Event.query.filter_by(level_requirement=level).all()
+
+    return jsonify([
+        {"id": e.event_id, "name": e.event_name}
+        for e in events
+    ])
+
+@app.route("/members/level/<level>", methods=["GET"])
+def get_members_by_level(level):
+    members = Member.query.filter_by(membership_level=level).all()
+
+    return jsonify([
+        {"id": m.member_id, "name": m.first_name}
+        for m in members
+    ])
 
 if __name__ == "__main__":
     app.run(debug=True)
